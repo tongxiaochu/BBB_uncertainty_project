@@ -58,8 +58,8 @@ def run_active_training_af(args: Namespace, logger: Logger = None) -> List[float
     for model_idx in range(args.ensemble_size):
 
         # Load data
-        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data_for_uncertainty(args.data_path, prop='PCP')
-        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data_for_uncertainty(args.separate_test_path, prop='PCP', scaler=scaler)
+        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data_for_uncertainty(args.data_path, prop='ECFP')
+        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data_for_uncertainty(args.separate_test_path, prop='ECFP', scaler=scaler)
 
         smiles_train = train_data.iloc[:, 0].values
         smiles_val = val_data.iloc[:, 0].values
