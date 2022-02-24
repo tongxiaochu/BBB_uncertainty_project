@@ -63,3 +63,9 @@ python main.py MLP --seed 921013
                    --ensemble_size 5
                    --save_dir ./BBBp_results/MLP(PCP)
 ```
+
+#### Draw figures for uncertainty analysis plot 
+```
+python uncertainty_analysis_plot.py --model_type GROVER
+                                    --save_dir ../BBBp_results/GROVER
+```
