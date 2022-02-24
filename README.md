@@ -11,8 +11,7 @@ python save_features.py --data_path ../dataset/Sdata-process-flow-step5-testdata
 
 #### Estimate uncertainty for S-data by GROVER
 ```
-python main.py GROVER --seed 921013
-                      --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
+python main.py GROVER --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
                       --features_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.npz
                       --separate_test_path dataset/Sdata-process-flow-step5-testdata.csv
                       --separate_test_features_path dataset/Sdata-process-flow-step5-testdata.npz
@@ -44,19 +43,17 @@ python main.py GROVER --seed 921013
 
 #### Estimate uncertainty for S-data by AttentiveFP
 ```
-python main.py AttentiveFP --seed 921013
-                   --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
-                   --separate_test_path dataset/Sdata-process-flow-step5-testdata.csv
-                   --dataset_type classification
-                   --ensemble_size 5
-                   --pred_times 100
-                   --save_dir ./BBBp_results/AttentiveFP
+python main.py AttentiveFP --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
+                           --separate_test_path dataset/Sdata-process-flow-step5-testdata.csv
+                           --dataset_type classification
+                           --ensemble_size 5
+                           --pred_times 100
+                           --save_dir ./BBBp_results/AttentiveFP
 ```
 
 #### Estimate uncertainty for S-data by RL/MLP
 ```
-python main.py MLP --seed 921013
-                   --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
+python main.py MLP --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
                    --separate_test_path dataset/Sdata-process-flow-step5-testdata.csv
                    --feature_type PCP
                    --dataset_type classification
