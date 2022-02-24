@@ -14,10 +14,10 @@ from grover.util.utils import makedirs, save_checkpoint, load_checkpoint
 from grover.util.utils import get_class_sizes, get_data, get_task_names
 
 from utils.model_utils import FitModule
-from utils.utils import scoring, BBB_likeness, confuse_matrix, MLP_featurize_loader
+from utils.utils import scoring, BBB_likeness, confuse_matrix, MLP_featurize_loader, download_and_save_models, un_zip
 from utils.dataset_utils import load_MoleculeDataset
 from utils.uncertainty_utils import *
-from benchmark_ml import load_train_data, load_test_data
+from benchmark_ml import load_train_data_for_uncertainty, load_test_data_for_uncertainty
 
 import pickle
 
@@ -32,7 +32,7 @@ def setup_seed(seed):
     random.seed(seed)
 
 
-def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
+def run_active_training_ml(args: Namespace, logger: Logger = None) -> List[float]:
     """
     Trains a model and returns test scores on the model checkpoint with the highest validation score.
 
@@ -41,21 +41,12 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
     :return: A list of ensemble scores for each task.
     """
 
-    model_dir = args.save_dir.split('/')[-1]
-    if 'mlp' in model_dir:
-        model_name = 'MLP'
-    elif 'rf' in model_dir:
-        model_name = 'RF'
-
     setup_seed(args.seed)
     if logger is not None:
         debug, info = logger.debug, logger.info
     else:
         debug = info = print
-    # pin GPU to local rank.
-    idx = args.gpu
-    if args.gpu is not None:
-        torch.cuda.set_device(idx)
+
     info(args)
 
     # Train ensemble of models
@@ -64,23 +55,27 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
     for model_idx in range(args.ensemble_size):
 
         # Load data
-        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data(validation=False, prop='PCP')
-        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data(prop='PCP', scaler=scaler)
+        debug('Loading data.....')
+        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data_for_uncertainty(args.data_path, prop=args.feature_type)
+        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data_for_uncertainty(args.separate_test_path, prop=args.feature_type, scaler=scaler)
 
         smiles_train = train_data_new.iloc[:, 0].values
         smiles_val = val_data_new.iloc[:, 0].values
 
         save_dir = os.path.join(args.save_dir, f'model_{model_idx}')
         model_path = os.path.join(save_dir, f'model.ckpt')
-        if os.path.isfile(model_path):
-            debug(f'Loading model {model_idx} from {model_path}')
-            with open(model_path, 'rb') as f:
-                estimator = pickle.load(f)
-        else:
-            raise (f'There is no model in {model_path}')
+        if not os.path.isfile(model_path):
+            debug(f'Download models....')
+            download_and_save_models('BBBp_results.zip')
+            debug(f'unzip files....')
+            un_zip('BBBp_results.zip')
+
+        debug(f'Loading model {model_idx} from {model_path}')
+        with open(model_path, 'rb') as f:
+            estimator = pickle.load(f)
 
         # save_latent_feats
-        if model_name == 'MLP':
+        if args.parser_name == 'MLP':
             features = MLP_featurize_loader(x_val, estimator, layer=0)
             dill.dump((smiles_val, features, y_val), open(os.path.join(args.save_dir, f'latent_feature_test_model_{model_idx}.pkl'), 'wb'))
 
@@ -100,7 +95,7 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
             info(f'{key:^18}\t {train_score[key]:.4f}  \t {val_score[key]:.4f}  ')
 
         #latent_distance
-        if model_name == 'MLP':
+        if args.parser_name == 'MLP':
             LatentDist_u = MLP_latent_distance(estimator, x_train, x_val, args)
         else:
             LatentDist_u = np.zeros_like(y_val)
@@ -128,16 +123,16 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
 
     uncertainty_list = [FPsDist_u] + [uc / 5 for uc in uncertainty_list_sum] + [Multi_init_u]
 
-    args.num_tasks = 1
+    num_tasks = 1
     # write results to csv
     ind = [
-    ['Prediction'] * args.num_tasks + \
-    ['Target'] * args.num_tasks + \
-    ['FPsDist'] * args.num_tasks + \
-    ['LatentDist'] * args.num_tasks + \
-    ['Entropy'] * args.num_tasks + \
-    ['MC-dropout'] * args.num_tasks + \
-    ['Multi-initial'] * args.num_tasks
+    ['Prediction'] * num_tasks + \
+    ['Target'] * num_tasks + \
+    ['FPsDist'] * num_tasks + \
+    ['LatentDist'] * num_tasks + \
+    ['Entropy'] * num_tasks + \
+    ['MC-dropout'] * num_tasks + \
+    ['Multi-initial'] * num_tasks
     ]
     ind = pd.MultiIndex.from_tuples(list(zip(*ind)))
     data = np.concatenate(

@@ -5,6 +5,7 @@ from argparse import Namespace
 from logging import Logger
 import random
 
+
 import pandas as pd
 
 import torch
@@ -13,8 +14,9 @@ from grover.data import StandardScaler
 from grover.util.utils import makedirs, save_checkpoint, load_checkpoint
 from grover.util.utils import get_class_sizes, get_data, get_task_names
 
+
 from utils.model_utils import FitModule
-from utils.utils import scoring, BBB_likeness, confuse_matrix
+from utils.utils import scoring, BBB_likeness, confuse_matrix, download_and_save_models, un_zip
 from utils.dataset_utils import load_MoleculeDataset
 from utils.uncertainty_utils import *
 
@@ -30,7 +32,7 @@ def setup_seed(seed):
     random.seed(seed)
 
 
-def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
+def run_active_training_GROVER(args: Namespace, logger: Logger = None) -> List[float]:
     """
     Trains a model and returns test scores on the model checkpoint with the highest validation score.
 
@@ -62,7 +64,7 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
     args.num_tasks = train_data.num_tasks()
     args.features_size = train_data.features_size()
     debug(f'Number of tasks = {args.num_tasks}')
-
+    print('args.separate_test_features_path:', args.separate_test_features_path)
     val_data = get_data(path=args.separate_test_path, features_path=args.separate_test_features_path, args=args, logger=logger)
 
     if args.features_scaling:
@@ -93,22 +95,32 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
 
         save_dir = os.path.join(args.save_dir, f'model_{model_idx}')
         model_path = os.path.join(save_dir, f'model.ckpt')
-        if os.path.isfile(model_path):
-            debug(f'Loading model {model_idx} from {model_path}')
-            network = load_checkpoint(model_path, cuda=args.cuda, current_args=args, logger=logger)
-            model = FitModule(model_idx, None, args, logger)
-            model.model = network
-        else:
-            raise (f'There is no finetuned model in {model_path}')
+
+        if not os.path.isfile(model_path):
+            debug(f'Download models....')
+            download_and_save_models('BBBp_results.zip')
+            debug(f'unzip files....')
+            un_zip('BBBp_results.zip')
+
+        debug(f'Loading model {model_idx} from {model_path}')
+        network = load_checkpoint(model_path, cuda=args.cuda, current_args=args, logger=logger)
+        model = FitModule(model_idx, None, args, logger)
+        model.model = network
 
         # save_latent_feats
         features = featurize_loader(network, x_val, args)
-        dill.dump((smiles_val, features, y_val), open(os.path.join(args.save_dir, f'latent_feature_test_model_{model_idx}.pkl'),'wb'))
+        dill.dump((smiles_val, features, y_val), open(os.path.join(args.save_dir, f'latent_feature_test_model_{model_idx}.pkl'), 'wb'))
+        features = featurize_loader(network, x_train, args)
+        dill.dump((smiles_train, features, y_train), open(os.path.join(args.save_dir, f'latent_feature_model_train_{model_idx}.pkl'), 'wb'))
 
         # scoring
         preds_val = model.predict_proba(x_val)
         proba_vote_list.append(preds_val)
         hard_preds_val = preds_val[:, 1].reshape(-1, 1)
+
+        df = pd.DataFrame(smiles_val, columns=['SMILES'])
+        df['preds'] = hard_preds_val
+        df.to_csv(os.path.join(args.save_dir, f'prediction_test_model_{model_idx}.csv'), index=False)
 
         train_score = scoring(y_train, model.predict(x_train), dataset_type=args.dataset_type)
         val_score = scoring(y_val, hard_preds_val, dataset_type=args.dataset_type)

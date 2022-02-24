@@ -14,11 +14,11 @@ from grover.util.utils import makedirs, save_checkpoint, load_checkpoint
 from grover.util.utils import get_class_sizes, get_data, get_task_names
 
 from utils.model_utils import FitModule
-from utils.utils import scoring, BBB_likeness, confuse_matrix
+from utils.utils import scoring, BBB_likeness, confuse_matrix, download_and_save_models, un_zip
 from utils.dataset_utils import load_MoleculeDataset
 from utils.uncertainty_utils import *
 
-from benchmark_ml_PCP import load_train_data, load_test_data, predict, predict_Ttimes
+from benchmark_ml import load_train_data_for_uncertainty, load_test_data_for_uncertainty, predict, predict_Ttimes
 import pickle
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -35,7 +35,7 @@ def setup_seed(seed):
     random.seed(seed)
 
 
-def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
+def run_active_training_af(args: Namespace, logger: Logger = None) -> List[float]:
     """
     Trains a model and returns test scores on the model checkpoint with the highest validation score.
 
@@ -49,10 +49,7 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
         debug, info = logger.debug, logger.info
     else:
         debug = info = print
-    # pin GPU to local rank.
-    # idx = args.gpu
-    # if args.gpu is not None:
-    #     torch.cuda.set_device(idx)
+
     info(args)
 
     # Train ensemble of models
@@ -61,22 +58,24 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
     for model_idx in range(args.ensemble_size):
 
         # Load data
-        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data(validation=False, prop='PCP')
-        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data(prop='PCP', scaler=scaler)
+        x_train, y_train, train_data, train_feature_dicts, scaler, train_data_new = load_train_data_for_uncertainty(args.data_path, prop='PCP')
+        x_val, y_val, val_data, val_feature_dicts, val_data_new = load_test_data_for_uncertainty(args.separate_test_path, prop='PCP', scaler=scaler)
 
         smiles_train = train_data.iloc[:, 0].values
         smiles_val = val_data.iloc[:, 0].values
 
         save_dir = os.path.join(args.save_dir, f'model_{model_idx}')
         model_path = os.path.join(save_dir, f'model.pt')
-        if os.path.isfile(model_path):
-            debug(f'Loading model {model_idx} from {model_path}')
-            model = torch.load(model_path)
-            model.cuda()
 
-        else:
-            raise (f'There is no finetuned model in {model_path}')
+        if not os.path.isfile(model_path):
+            debug(f'Download models....')
+            download_and_save_models('BBBp_results.zip')
+            debug(f'unzip files....')
+            un_zip('BBBp_results.zip')
 
+        debug(f'Loading model {model_idx} from {model_path}')
+        model = torch.load(model_path)
+        model.cuda()
 
         # scoring
         tasks = ['BBB']
@@ -127,7 +126,6 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
                                         loss_function,
                                         T=args.pred_times)
         MCdropout_u = mc_dropout(mc_pred_probas)
-        #MCdropout_u = np.zeros_like(val_y_list[0])
 
         uncertainty_list = [LatentDist_u, Entropy_u, MCdropout_u]
         uncertainty_list_sum = [uncertainty_list_sum[i] + uc for i, uc in enumerate(uncertainty_list)]
@@ -147,15 +145,15 @@ def run_active_training(args: Namespace, logger: Logger = None) -> List[float]:
     uncertainty_list = [FPsDist_u] + [uc / 5 for uc in uncertainty_list_sum] + [Multi_init_u]
 
     # write results to csv
-    args.num_tasks = 1
+    num_tasks = 1
     ind = [
-    ['Prediction'] * args.num_tasks + \
-    ['Target'] * args.num_tasks + \
-    ['FPsDist'] * args.num_tasks + \
-    ['LatentDist'] * args.num_tasks + \
-    ['Entropy'] * args.num_tasks + \
-    ['MC-dropout'] * args.num_tasks + \
-    ['Multi-initial'] * args.num_tasks
+    ['Prediction'] * num_tasks + \
+    ['Target'] * num_tasks + \
+    ['FPsDist'] * num_tasks + \
+    ['LatentDist'] * num_tasks + \
+    ['Entropy'] * num_tasks + \
+    ['MC-dropout'] * num_tasks + \
+    ['Multi-initial'] * num_tasks
     ]
     ind = pd.MultiIndex.from_tuples(list(zip(*ind)))
     data = np.concatenate(

@@ -145,13 +145,21 @@ def draw_histplot(result_df, uname, args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
+    parser.add_argument('--model_type', type=str, default='GROVER',
+                        help='model for uncertainty analysis[GROVER, AttentiveFP, MLP, RF]')
     parser.add_argument('--save_dir', type=str, required=True,
                         help='Path to result CSV')
     args = parser.parse_args()
 
+    if args.model_type == 'MLP':
+        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'LatentDist', 'Random']
+    elif args.model_type == 'RF':
+        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'Random']
+    else:
+        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'LatentDist', 'MC-dropout', 'Random']
+
     print("Load '{}' and draw figures.".format(args.save_dir))
     result_df = pd.read_csv(os.path.join(args.save_dir, f'test_result.csv'))
-
     result_df = ensemble_uncertainty(normalize_uncertainty(result_df), ensemble_unames=['Entropy', 'MC-dropout'])
 
     colors = {k: v for v, k in zip([c for i, c in enumerate(sns.color_palette("RdBu_r", 9)) if i not in (3, 4, 5)],
@@ -160,39 +168,28 @@ if __name__ == '__main__':
     args.colors = colors
 
     # figure 3
-    model_dir = args.save_dir.split('/')[-1]
-
-    if 'mlp' in model_dir:
-        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'LatentDist', 'Random']
-    elif 'rf' in model_dir:
-        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'Random']
-    elif 'AttentiveFP' in model_dir:
-        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'LatentDist', 'MC-dropout', 'Random']
-    else:
-        uname = ['Entropy', 'Multi-initial', 'FPsDist', 'LatentDist', 'MC-dropout', 'Random']
-
     print("Draw Figure 3 saved in {}".format(
         os.path.join(args.save_dir, 'uncertainty_lineplot_' + '_'.join(uname) + '.png')))
-
     draw_lineplot(result_df, uname=uname, args=args)
 
-    # figure 5
+    # figure 5 for GROVER-BBBp
     uname = ['Entropy', 'MC-dropout', 'Multi-initial', 'FPsDist', 'LatentDist', 'Random']
     print("Draw Figure 5 saved in {}".format(os.path.join(args.save_dir, 'uncertainty_histplots_'+'_'.join(uname)+'.png')))
     draw_histplot(result_df, uname=uname, args=args)
 
-
-    # figure 6A
+    # figure 6A for GROVER-BBBp
     uname = ['Entropy', 'MC-dropout', 'Ensemble']
     print("Draw Figure 6A saved in {}".format(
         os.path.join(args.save_dir, 'uncertainty_lineplots_' + '_'.join(uname) + '.png')))
     draw_lineplot(result_df, uname=uname, args=args)
 
-    # figure 6B
+    # figure 6B for GROVER-BBBp
     uname = ['Ensemble']
     print("Draw Figure 6B saved in {}".format(
         os.path.join(args.save_dir, 'uncertainty_histplot_' + '_'.join(uname) + '.png')))
     draw_histplot(result_df, uname=uname, args=args)
+
+
 
 
 

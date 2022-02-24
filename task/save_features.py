@@ -50,6 +50,23 @@ def generate_and_save_features(args: Namespace):
     features_generator = get_features_generator(args.features_generator)
     temp_save_dir = args.save_path + '_temp'
 
+    # Load partially complete data
+    if args.restart:
+        if os.path.exists(args.save_path):
+            os.remove(args.save_path)
+        if os.path.exists(temp_save_dir):
+            shutil.rmtree(temp_save_dir)
+    else:
+        if os.path.exists(args.save_path):
+            raise ValueError(f'"{args.save_path}" already exists and args.restart is False.')
+
+        if os.path.exists(temp_save_dir):
+            features, temp_num = load_temp(temp_save_dir)
+
+    if not os.path.exists(temp_save_dir):
+        makedirs(temp_save_dir)
+        features, temp_num = [], 0
+
     # Build features map function
     data = data[len(features):]  # restrict to data for which features have not been computed yet
     mols = (d.smiles for d in data)
@@ -92,6 +109,8 @@ if __name__ == '__main__':
                         help='Path to .npz file where features will be saved as a compressed numpy archive')
     parser.add_argument('--save_frequency', type=int, default=10000,
                         help='Frequency with which to save the features')
+    parser.add_argument('--restart', action='store_true', default=False,
+                        help='Whether to not load partially complete featurization and instead start from scratch')
     parser.add_argument('--max_data_size', type=int,
                         help='Maximum number of data points to load')
     parser.add_argument('--sequential', action='store_true', default=False,
@@ -99,8 +118,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.save_path is None:
         args.save_path = args.data_path.split('csv')[0] + 'npz'
-
-    if not os.path.isfile(args.save_path):
-        generate_and_save_features(args)
-    else:
-        print("Load '{}'.".format(args.save_path))
+    generate_and_save_features(args)
