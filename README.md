@@ -49,6 +49,7 @@ python main.py AttentiveFP --seed 921013
                    --separate_test_path dataset/Sdata-process-flow-step5-testdata.csv
                    --dataset_type classification
                    --ensemble_size 5
+                   --pred_times 100
                    --save_dir ./BBBp_results/AttentiveFP
 ```
 
