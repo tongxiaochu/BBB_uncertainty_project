@@ -1,7 +1,7 @@
 # BBB_uncertainty_project
-code for "Blood–Brain Barrier Penetration Prediction Enhanced by Uncertainty Estimation"
+Code for "Blood–Brain Barrier Penetration Prediction Enhanced by Uncertainty Estimation"
 
-#### process test dataset and save features
+#### Process test dataset and save features
 ```
 python save_features.py --data_path ../dataset/Sdata-process-flow-step5-testdata.csv
                         --features_generator rdkit_2d_normalized
@@ -9,7 +9,7 @@ python save_features.py --data_path ../dataset/Sdata-process-flow-step5-testdata
                         --sequential
 ```
 
-#### estimate uncertainty for S-data by GROVER
+#### Estimate uncertainty for S-data by GROVER
 ```
 python main.py GROVER --seed 921013
                       --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
@@ -42,7 +42,7 @@ python main.py GROVER --seed 921013
                       --save_dir ./BBBp_results/GROVER
 ```
 
-#### estimate uncertainty for S-data by AttentiveFP
+#### Estimate uncertainty for S-data by AttentiveFP
 ```
 python main.py AttentiveFP --seed 921013
                    --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
@@ -53,7 +53,7 @@ python main.py AttentiveFP --seed 921013
                    --save_dir ./BBBp_results/AttentiveFP
 ```
 
-#### estimate uncertainty for S-data by RL/MLP
+#### Estimate uncertainty for S-data by RL/MLP
 ```
 python main.py MLP --seed 921013
                    --data_path dataset/MoleculeNet-BBBP-process-flow-step5-traindata.csv
