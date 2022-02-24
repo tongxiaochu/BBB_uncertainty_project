@@ -132,7 +132,7 @@ def add_train_args(parser: ArgumentParser):
     parser.add_argument('--crossval_index_file', type=str, 
                         help='Indices of files to use as train/val/test'
                              'Overrides --num_folds and --seed.')
-    parser.add_argument('--seed', type=int, default=0,
+    parser.add_argument('--seed', type=int, default=921013,
                         help='Random seed to use when splitting data into train/val/test sets.'
                              'When `num_folds` > 1, the first fold uses this seed and all'
                              'subsequent folds add 1 to the seed.')
@@ -419,3 +419,71 @@ def parse_args() -> Namespace:
     modify_train_args(args)
 
     return args
+
+def add_GROVER_args(parser: ArgumentParser):
+
+    add_train_args(parser)
+
+
+def add_MLP_args(parser: ArgumentParser):
+    parser.add_argument('--data_path', type=str,
+                        help='Path to data CSV file')
+    parser.add_argument('--separate_test_path', type=str,
+                        help='Path to separate test set, optional')
+    parser.add_argument('--save_dir', type=str, default=None,
+                        help='Directory where model checkpoints will be saved')
+    parser.add_argument('--quiet', action='store_true', default=False,
+                        help='Skip non-essential print statements')
+    parser.add_argument('--seed', type=int, default=921013,
+                        help='Random seed')
+    parser.add_argument('--ensemble_size', type=int, default=1,
+                        help='Number of models in ensemble')
+    parser.add_argument('--feature_type', type=str, default='PCP',
+                        help='features for ML models [PCP, ECFP]')
+    parser.add_argument('--dataset_type', type=str,
+                        choices=['classification', 'regression'], default='classification',
+                        help='Type of dataset, e.g. classification or regression.'
+                             'This determines the loss function used during training.')
+
+
+def add_RF_args(parser: ArgumentParser):
+    parser.add_argument('--data_path', type=str,
+                        help='Path to data CSV file')
+    parser.add_argument('--separate_test_path', type=str,
+                        help='Path to separate test set, optional')
+    parser.add_argument('--save_dir', type=str, default=None,
+                        help='Directory where model checkpoints will be saved')
+    parser.add_argument('--quiet', action='store_true', default=False,
+                        help='Skip non-essential print statements')
+    parser.add_argument('--seed', type=int, default=921013,
+                        help='Random seed')
+    parser.add_argument('--ensemble_size', type=int, default=1,
+                        help='Number of models in ensemble')
+    parser.add_argument('--feature_type', type=str, default='PCP',
+                        help='features for ML models [PCP, ECFP]')
+    parser.add_argument('--dataset_type', type=str,
+                        choices=['classification', 'regression'], default='classification',
+                        help='Type of dataset, e.g. classification or regression.'
+                             'This determines the loss function used during training.')
+
+def add_AttentiveFP_args(parser: ArgumentParser):
+    parser.add_argument('--data_path', type=str,
+                        help='Path to data CSV file')
+    parser.add_argument('--separate_test_path', type=str,
+                        help='Path to separate test set, optional')
+    parser.add_argument('--save_dir', type=str, default=None,
+                        help='Directory where model checkpoints will be saved')
+    parser.add_argument('--quiet', action='store_true', default=False,
+                        help='Skip non-essential print statements')
+    parser.add_argument('--seed', type=int, default=921013,
+                        help='Random seed')
+    parser.add_argument('--ensemble_size', type=int, default=1,
+                        help='Number of models in ensemble')
+    parser.add_argument('--dataset_type', type=str,
+                        choices=['classification', 'regression'], default='classification',
+                        help='Type of dataset, e.g. classification or regression.'
+                             'This determines the loss function used during training.')
+
+    # For uncertainty estimation.
+    parser.add_argument('--pred_times', type=int, default=20, help="The number of predictions for MCdropout.")
+

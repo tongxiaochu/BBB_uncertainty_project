@@ -97,6 +97,7 @@ try:
         :param mol: A molecule (i.e. either a SMILES string or an RDKit molecule).
         :return: A 1D numpy array containing the RDKit 2D features.
         """
+        #print('rdkit_2d')
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdDescriptors.RDKit2D()
         features = generator.process(smiles)[1:]
@@ -111,6 +112,7 @@ try:
         :param mol: A molecule (i.e. either a SMILES string or an RDKit molecule).
         :return: A 1D numpy array containing the RDKit 2D normalized features.
         """
+        #print('rdkit_2d_normalized')
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdNormalizedDescriptors.RDKit2DNormalized()
         features = generator.process(smiles)[1:]
