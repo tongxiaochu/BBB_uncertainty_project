@@ -32,7 +32,7 @@ class Fingerprint(nn.Module):
 
     def forward(self, atom_list, bond_list, atom_degree_list, bond_degree_list, atom_mask):
         atom_mask = atom_mask.unsqueeze(2)
-        batch_size,mol_length,num_atom_feat = atom_list.size()
+        batch_size, mol_length, num_atom_feat = atom_list.size()
         atom_feature = F.leaky_relu(self.atom_fc(atom_list))
 
         bond_neighbor = [bond_list[i][bond_degree_list[i]] for i in range(batch_size)]
@@ -136,8 +136,10 @@ class Fingerprint(nn.Module):
 #             print(mol_feature.shape,mol_feature)
 
             # do nonlinearity
-            activated_features_mol = F.relu(mol_feature)           
+            activated_features_mol = F.relu(mol_feature)
+
+        self.mol_feature = mol_feature
             
         mol_prediction = self.output(self.dropout(mol_feature))
             
-        return atom_feature, mol_prediction
+        return atom_feature, mol_prediction, mol_feature
