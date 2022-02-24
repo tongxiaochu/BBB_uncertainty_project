@@ -66,3 +66,8 @@ python main.py MLP --data_path dataset/MoleculeNet-BBBP-process-flow-step5-train
 python uncertainty_analysis_plot.py --model_type GROVER
                                     --save_dir ../BBBp_results/GROVER
 ```
+
+#### Model performance for all BBBp models
+```
+python model_performance_plot.py
+```
