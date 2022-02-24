@@ -7,7 +7,7 @@ import numpy as np
 from scipy.stats import entropy
 from sklearn import preprocessing
 
-from utils.utils import get_fps, tanimoto_distance, featurize_loader, standardized_euclidean_distance
+from utils.utils import get_fps, tanimoto_distance, featurize_loader, AttentiveFP_featurize_loader, MLP_featurize_loader, standardized_euclidean_distance
 
 
 def mc_dropout(preds_probas):
@@ -61,3 +61,42 @@ def latent_distance(network,
     return np.array(min_eud)
 
 
+def AttentiveFP_latent_distance(network,
+                                X_train,
+                                train_feature_dicts,
+                                X_val,
+                                val_feature_dicts,
+                                args):
+    """
+    Compute uncertainty using latent space distance
+    """
+    train_features = AttentiveFP_featurize_loader(network, X_train, train_feature_dicts, args)
+    print(train_features.shape)  #torch.Size([1937, 150])
+
+    train_features_scale = preprocessing.scale(train_features, axis=0)
+
+    val_features = AttentiveFP_featurize_loader(network, X_val, val_feature_dicts, args)
+
+    val_features_scale = preprocessing.scale(val_features, axis=0)
+
+    eu_dist = standardized_euclidean_distance(train_features_scale, val_features_scale)
+    min_eud = [min(query_mol_dist) for query_mol_dist in eu_dist]
+    return np.array(min_eud)
+
+def MLP_latent_distance(network,
+                    X_train,
+                    X_val,
+                    args
+                    ):
+    """
+    Compute uncertainty using latent space distance
+    """
+    train_features = MLP_featurize_loader(X_train, network, layer=0) #featurize_loader(network, X_train, args)
+    train_features_scale = preprocessing.scale(train_features, axis=0)
+
+    val_features = MLP_featurize_loader(X_val, network, layer=0) #featurize_loader(network, X_val, args)
+    val_features_scale = preprocessing.scale(val_features, axis=0)
+
+    eu_dist = standardized_euclidean_distance(train_features_scale, val_features_scale)
+    min_eud = [min(query_mol_dist) for query_mol_dist in eu_dist]
+    return np.array(min_eud)
